@@ -6,8 +6,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -70,22 +68,25 @@ public class Gpx2CsvConverter {
 			TimeStep ts = timesteps.get(i);
 			if (lastts==null) {
 				ts.distance=0.0;
+				ts.accdist=0.0;
 			}
 			else {
 				ts.distance = new Haversine(ts.lat, ts.lon, lastts.lat, lastts.lon).calculate().meters();
+				ts.accdist=lastts.accdist+ts.distance;
 			}
 
 			lastts=ts;
 		}
-		
-		
+				
 		timesteps.stream().forEachOrdered(t -> {
 			System.out.println(t.timestep.toString());
-			System.out.println(t.hr);
-			System.out.println(t.cadence);
-			System.out.println(t.cadence*2);
-			System.out.println(t.distance);
-			
+			System.out.println("hr: "+t.hr);
+			System.out.println("cad: "+t.cadence);
+			System.out.println("str: "+t.cadence*2);
+			System.out.println("meter: "+t.distance);
+			System.out.println("hast:"+(t.distance*3.6));
+			System.out.println("dps: "+(t.distance/1*60/(t.cadence*2)));
+			System.out.println("accdist: "+t.accdist);
 		});
 		
 		
@@ -93,13 +94,13 @@ public class Gpx2CsvConverter {
 			
 			String s = timesteps.stream()
 			.map(t -> {
-				if (t!=null) return t.timestep.toString()+";"+t.hr+";"+t.cadence*2+";"+t.distance;
+				if (t!=null) return t.timestep.toString()+";"+t.hr+";"+t.cadence*2+";"+t.distance+";"+(t.distance*3.6)+";"+(t.distance/1*60/(t.cadence*2))+";"+t.accdist;
 				return "";
 			})
 			.reduce((s1,s2)-> s1+"\n"+s2).get();
 			
 			try {
-				p.append("timestemp;hr;str;meter\n\r");
+				p.append("timestep;hr;str;meter;hast;dps;accdist\n\r");
 				p.append(s);
 				
 			} catch (IOException e) {
@@ -119,9 +120,11 @@ public class Gpx2CsvConverter {
 		public Integer hr=0;
 		public Integer cadence=0;
 		public Double distance=0.0;
+		public Double accdist=0.0;
+		
 	}
 	
 	public static void main(String[] args) {
-		new Gpx2CsvConverter(Paths.get("d:/tmp/gpx/activity_1651760939.gpx"), Paths.get("d:/tmp/gpx/20170401-Melina.csv")).execute();
+		new Gpx2CsvConverter(Paths.get("/home/edhag/Documents/activity_1679475453.gpx"), Paths.get("/home/edhag/Documents/Melina-2017-04-15.csv")).execute();
 	}
 }
